@@ -1,4 +1,4 @@
-// exception.cc 
+// exception.cc
 //	Entry point into the Nachos kernel from user programs.
 //	There are two kinds of things that can cause control to
 //	transfer back to here from user code:
@@ -9,7 +9,7 @@
 //
 //	exceptions -- The user code does something that the CPU can't handle.
 //	For instance, accessing memory that doesn't exist, arithmetic errors,
-//	etc.  
+//	etc.
 //
 //	Interrupts (which can also cause control to transfer from user
 //	code into the Nachos kernel) are handled elsewhere.
@@ -18,7 +18,7 @@
 // Everything else core dumps.
 //
 // Copyright (c) 1992-1993 The Regents of the University of California.
-// All rights reserved.  See copyright.h for copyright notice and limitation 
+// All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
 
 #include <stdio.h>        // FA98
@@ -51,12 +51,12 @@ Thread * getID(int toGet);
 //		arg3 -- r6
 //		arg4 -- r7
 //
-//	The result of the system call, if any, must be put back into r2. 
+//	The result of the system call, if any, must be put back into r2.
 //
 // And don't forget to increment the pc before returning. (Or else you'll
 // loop making the same system call forever!
 //
-//	"which" is the kind of exception.  The list of possible exceptions 
+//	"which" is the kind of exception.  The list of possible exceptions
 //	are in machine.h.
 //----------------------------------------------------------------------
 
@@ -80,12 +80,12 @@ Thread* getID(int toGet)	// Goes through the list of active threads and returns 
 		return NULL;
 	else return toReturn;
 }
-	
+
 void processCreator(int arg)	// Used when a process first actually runs, not when it is created.
  {
 	currentThread->space->InitRegisters();		// set the initial register values
     currentThread->space->RestoreState();		// load page table register
-	
+
 	if (threadToBeDestroyed != NULL){
 		delete threadToBeDestroyed;
 		threadToBeDestroyed = NULL;
@@ -128,7 +128,7 @@ ExceptionHandler(ExceptionType which)
 			interrupt->Halt();
 			break;
 
-			
+
 		case SC_Read :
 			if (arg2 <= 0 || arg3 < 0){
 				printf("\nRead 0 byte.\n");
@@ -145,7 +145,7 @@ ExceptionHandler(ExceptionType which)
 					j=j-1;
 				else{
 					ch[j] = (char) i;
-					if (ch[j] == '\0') 
+					if (ch[j] == '\0')
 						break;
 				}
 			}
@@ -166,7 +166,7 @@ ExceptionHandler(ExceptionType which)
 
 				// Read file name into the kernel space
 				char *filename = new char[100];
-				
+
 				for(int m = 0; m < 100; m++)
 					filename[m] = NULL;
 
@@ -182,8 +182,8 @@ ExceptionHandler(ExceptionType which)
 				}
 				// Open File
 				OpenFile *executable = fileSystem->Open(filename);
-				
-				if (executable == NULL) 
+
+				if (executable == NULL)
 				{
 					printf("Unable to open file %s\n", filename);
 					delete filename;
@@ -193,7 +193,7 @@ ExceptionHandler(ExceptionType which)
 
 				// Calculate needed memory space
 				AddrSpace *space;
-				space = new AddrSpace(executable);
+				space = new AddrSpace(executable, threadID);
 				delete executable;
 				// Do we have enough space?
 				if(!currentThread->killNewChild)	// If so...
@@ -221,7 +221,7 @@ ExceptionHandler(ExceptionType which)
 					printf("ERROR: Trying to join process %i to process %i, which was not created successfully! Process %i continuing normally.\n", currentThread->getID(), -arg1, currentThread->getID());	// Return an error message, continue as normal.
 					break;
 				}
-				
+
 				if(getID(arg1) != NULL)	// If the thread exists...
 				{
 					if(!currentThread->isJoined)	// And it's not already joined...
@@ -248,9 +248,12 @@ ExceptionHandler(ExceptionType which)
 					printf("Process %i exited normally!\n", currentThread->getID());
 				else
 					printf("ERROR: Process %i exited abnormally!\n", currentThread->getID());
-				
+
 				if(currentThread->space)	// Delete the used memory from the process.
+				{
+					fileSystem->Remove(currentThread->space->name);
 					delete currentThread->space;
+				}
 				currentThread->Finish();	// Delete the thread.
 
 				break;
@@ -279,7 +282,10 @@ ExceptionHandler(ExceptionType which)
 		if (currentThread->getName() == "main")
 			ASSERT(FALSE);  //Not the way of handling an exception.
 		if(currentThread->space)	// Delete the used memory from the process.
+		{
+			fileSystem->Remove(currentThread->space->name);
 			delete currentThread->space;
+		}
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case BusErrorException :
@@ -287,7 +293,10 @@ ExceptionHandler(ExceptionType which)
 		if (currentThread->getName() == "main")
 			ASSERT(FALSE);  //Not the way of handling an exception.
 		if(currentThread->space)	// Delete the used memory from the process.
+		{
+			fileSystem->Remove(currentThread->space->name);
 			delete currentThread->space;
+		}
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case AddressErrorException :
@@ -295,7 +304,10 @@ ExceptionHandler(ExceptionType which)
 		if (currentThread->getName() == "main")
 			ASSERT(FALSE);  //Not the way of handling an exception.
 		if(currentThread->space)	// Delete the used memory from the process.
+		{
+			fileSystem->Remove(currentThread->space->name);
 			delete currentThread->space;
+		}
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case OverflowException :
@@ -303,7 +315,10 @@ ExceptionHandler(ExceptionType which)
 		if (currentThread->getName() == "main")
 			ASSERT(FALSE);  //Not the way of handling an exception.
 		if(currentThread->space)	// Delete the used memory from the process.
+		{
+			fileSystem->Remove(currentThread->space->name);
 			delete currentThread->space;
+		}
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case IllegalInstrException :
@@ -311,7 +326,10 @@ ExceptionHandler(ExceptionType which)
 		if (currentThread->getName() == "main")
 			ASSERT(FALSE);  //Not the way of handling an exception.
 		if(currentThread->space)	// Delete the used memory from the process.
+		{
+			fileSystem->Remove(currentThread->space->name);
 			delete currentThread->space;
+		}
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case NumExceptionTypes :
@@ -319,7 +337,10 @@ ExceptionHandler(ExceptionType which)
 		if (currentThread->getName() == "main")
 			ASSERT(FALSE);  //Not the way of handling an exception.
 		if(currentThread->space)	// Delete the used memory from the process.
+		{
+			fileSystem->Remove(currentThread->space->name);
 			delete currentThread->space;
+		}
 		currentThread->Finish();	// Delete the thread.
 		break;
 
@@ -386,4 +407,3 @@ static void SWrite(char *buffer, int size, int id)
 	WriteFile(id,buffer,size);
 }
 // end FA98
-
