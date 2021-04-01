@@ -7,6 +7,7 @@
 
 #include "copyright.h"
 #include "system.h"
+#include "list.h"
 
 // This defines *all* of the global data structures used by Nachos.
 // These are all initialized and de-allocated by this file.
@@ -19,6 +20,11 @@ Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
 int threadChoice;
+// begin code changes by Samantha Luke
+int memChoice;
+List pageList = new List ();
+Thread* IPT [32];
+// end code changes by Samantha Luke
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -117,9 +123,31 @@ Initialize(int argc, char **argv)
 			threadChoice = atoi(*(argv+1));
 	    argCount = 2;
 	}
+  // Begin code changes by Samantha Luke
+  else if (!strcmp (*argv, "-V"))
+  {
+      if(*(argv+1) == NULL)
+      {
+          memChoice = 0;
+          printf ("Disabling Virtual Memory, Using Demand Paging\n");
+      }
+      else
+      {
+          memChoice = atoi (*(argv+1));
+          if (memChoice == 1)
+              printf ("Using FIFO Page Replacement\n");
+          else if (memChoice == 2)
+              printf ("Using Random Page Replacement\n");
+          else
+              printf ("Disabling Virtual Memory, Using Demand Paging\n");
+      }
+  }
+  // End code changes by Samantha Luke
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
+  if (!strcmp (*argv, "-V"))
+
 #endif
 #ifdef FILESYS_NEEDED
 	if (!strcmp(*argv, "-f"))

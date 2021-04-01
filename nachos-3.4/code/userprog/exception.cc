@@ -24,6 +24,7 @@
 #include <stdio.h>        // FA98
 #include <stdlib.h>
 #include "copyright.h"
+#include "list.h"
 #include "system.h"
 #include "syscall.h"
 #include "addrspace.h"   // FA98
@@ -83,7 +84,7 @@ Thread* getID(int toGet)	// Goes through the list of active threads and returns 
 
 void processCreator(int arg)	// Used when a process first actually runs, not when it is created.
  {
-	currentThread->space->InitRegisters();		// set the initial register values
+		currentThread->space->InitRegisters();		// set the initial register values
     currentThread->space->RestoreState();		// load page table register
 
 	if (threadToBeDestroyed != NULL){
@@ -333,23 +334,87 @@ ExceptionHandler(ExceptionType which)
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case NumExceptionTypes :
-		printf("ERROR: NumExceptionTypes, called by thread %i.\n",currentThread->getID());
-		if (currentThread->getName() == "main")
-			ASSERT(FALSE);  //Not the way of handling an exception.
-		if(currentThread->space)	// Delete the used memory from the process.
-		{
-			fileSystem->Remove(currentThread->space->name);
-			delete currentThread->space;
-		}
-		currentThread->Finish();	// Delete the thread.
-		break;
+			printf("ERROR: NumExceptionTypes, called by thread %i.\n",currentThread->getID());
+			if (currentThread->getName() == "main")
+				ASSERT(FALSE);  //Not the way of handling an exception.
+			if(currentThread->space)	// Delete the used memory from the process.
+			{
+				fileSystem->Remove(currentThread->space->name);
+				delete currentThread->space;
+			}
+			currentThread->Finish();	// Delete the thread.
+			break;
 
-		default :
-		//      printf("Unexpected user mode exception %d %d\n", which, type);
-		//      if (currentThread->getName() == "main")
-		//      ASSERT(FALSE);
-		//      SExit(1);
-		break;
+			default :
+			//      printf("Unexpected user mode exception %d %d\n", which, type);
+			//      if (currentThread->getName() == "main")
+			//      ASSERT(FALSE);
+			//      SExit(1);
+			break;
+	case PageFaultException :
+			// Task 3 stuff
+
+			// Begin code changes by Samantha Luke
+			int pageToReplace = -1;
+
+			switch (memChoice)
+			{
+					case 1: // FIFO page replacement
+							pageToReplace = pageList->Remove ();
+							break;
+					case 2: // Random page replacement
+							pageToReplace = (Random () % 31);
+							break;
+					default: // Demand Paging, other, or error, disable virtual memory
+							printf ("Not enough pages available, exiting program.");
+							currentThread->Finish ();
+							break;
+			}
+
+			if (pageToReplace != -1)
+			{
+					Thread *swapOutThread = IPT [pageToReplace];
+
+					if (swapOutThread->space->pageTable.dirty)// if dirty
+					{
+							// open swapfile of swapOutThread
+							name = new char[20];
+							int thread_id = swapOutThread->ID;
+							sprintf(name, "%d.swap", thread_id);
+							OpenFile * file = fileSystem->Open(name);
+
+							//// write content of physical page to swap file at its virtual page allocation
+							int bufferSize = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
+							char * buffer = new char[bufferSize];
+							executable->ReadAt(buffer, bufferSize, sizeof(noffH));
+							file->WriteAt(buffer, bufferSize, 0);
+
+							// set thread page table valid bit to FALSE
+							swapOutThread->space->pageTable.valid = FALSE;
+
+							// close swap file
+							// delete pointer to swap file
+							delete[] buffer;
+							delete file;
+					}
+
+					// open swap file for current thread
+					name = new char[20];
+					int thread_id = currentThread->ID;
+					sprintf(name, "%d.swap", thread_id);
+					OpenFile * file = fileSystem->Open(name);
+
+					// copy required content into the physical page just opened
+
+
+					// update IPT[free_physical_page_num] and set it to curren thread
+					IPT[pageToReplace] = currentThread;
+
+					// if FIFO, add the page number ot the FIFO list
+					if (memChoice == 1)
+							pageList->Append (pageToReplace);
+			}
+			// End code changes by Samantha Luke
 	}
 	delete [] ch;
 }
