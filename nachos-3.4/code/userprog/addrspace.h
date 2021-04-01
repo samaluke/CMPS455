@@ -29,7 +29,7 @@ class AddrSpace {
     void InitRegisters();		// Initialize user-level CPU registers,
 					// before jumping to user code
 
-	bool UpdatePage(int badVPage, int bitMapNum);
+	void UpdatePage(int badVPage, int bitMapNum);
 	void LoadPage();
 	void GetPageData(int num);
 
@@ -37,7 +37,6 @@ class AddrSpace {
     void RestoreState();		// info on a context switch
 
 	char* name;
-	OpenFile* swapFile;
 
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation

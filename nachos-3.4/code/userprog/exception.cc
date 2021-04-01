@@ -132,6 +132,7 @@ ExceptionHandler(ExceptionType which)
 		case SC_Halt :
 			printf("SYSTEM CALL: Halt, called by thread %i.\n",currentThread->getID());
 			DEBUG('t', "Shutdown, initiated by user program.\n");
+			fileSystem->Remove(currentThread->space->name);
 			interrupt->Halt();
 			break;
 
@@ -238,6 +239,7 @@ ExceptionHandler(ExceptionType which)
 						currentThread->isJoined = true;	// Let the parent know it has a child
 						(void) interrupt->SetLevel(IntOff);	// Disable interrupts for Sleep();
 						currentThread->Sleep();	// Put the current thread to sleep.
+						fileSystem->Remove(currentThread->space->name);
 						break;
 					}
 					else{	// We've got an error message.
@@ -352,37 +354,19 @@ ExceptionHandler(ExceptionType which)
 		break;
 	case PageFaultException :
 		{
-		/// Ben Hearod Demand Pageing Start
+			/// Ben Hearod Demand Pageing Start
+			badVAddr = machine->ReadRegister(BadVAddrReg);
+			badVPage = badVAddr / PageSize;
+			bitMapNum = bitMap->Find();
 
+			stats->numPageFaults++;
 
-
-		badVAddr = machine->ReadRegister(BadVAddrReg);
-		badVPage = badVAddr/PageSize;
-		badVPage = badVPage + (stats->numPageFaults);
-		bitMapNum = bitMap->Find();
-		//bitMap->Print();
-
-
-
-		//currentThread->space->swapFile->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVAddr*PageSize);
-		printf("Page Fault: %d Finding page\n",stats->numPageFaults);
-
-		printf("Info %d %d %d %d \n",badVPage,badVAddr,PageSize, bitMapNum*PageSize);
-		stats->numPageFaults++;
-
-		currentThread->space->swapFile->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
-
-		currentThread->space->UpdatePage(badVPage,bitMapNum);
-		machine->Printmemory();
-
-
-		//OpenFile * file = fileSystem->Open(currentThread->space->name);
-		//file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVAddr*PageSize);
-		//delete file;
-
-
-		/// Demand Pageing End
-		break;
+			OpenFile * file = fileSystem->Open(currentThread->space->name);
+			file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
+			delete file;
+			currentThread->space->UpdatePage(badVPage,bitMapNum);
+			/// Demand Pageing End
+			break;
 		}
 		default :
 		//      printf("Unexpected user mode exception %d %d\n", which, type);
