@@ -38,7 +38,7 @@ class AddrSpace {
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch
 
-	// Begin Code changes by Konnor Miller
+	//Begin code changes by Konnor Miller
 	char* name;
 	// End Code changes by Konnor Miller
 
