@@ -35,6 +35,13 @@ static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
 Thread * getID(int toGet);
 
+int badVAddr;
+int badVPage;
+int bitMapNum;
+
+
+
+
 // end FA98
 
 //----------------------------------------------------------------------
@@ -343,7 +350,40 @@ ExceptionHandler(ExceptionType which)
 		}
 		currentThread->Finish();	// Delete the thread.
 		break;
+	case PageFaultException :
+		{
+		/// Ben Hearod Demand Pageing Start
 
+
+
+		badVAddr = machine->ReadRegister(BadVAddrReg);
+		badVPage = badVAddr/PageSize;
+		badVPage = badVPage + (stats->numPageFaults);
+		bitMapNum = bitMap->Find();
+		//bitMap->Print();
+
+
+
+		//currentThread->space->swapFile->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVAddr*PageSize);
+		printf("Page Fault: %d Finding page\n",stats->numPageFaults);
+
+		printf("Info %d %d %d %d \n",badVPage,badVAddr,PageSize, bitMapNum*PageSize);
+		stats->numPageFaults++;
+
+		currentThread->space->swapFile->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
+
+		currentThread->space->UpdatePage(badVPage,bitMapNum);
+		machine->Printmemory();
+
+
+		//OpenFile * file = fileSystem->Open(currentThread->space->name);
+		//file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVAddr*PageSize);
+		//delete file;
+
+
+		/// Demand Pageing End
+		break;
+		}
 		default :
 		//      printf("Unexpected user mode exception %d %d\n", which, type);
 		//      if (currentThread->getName() == "main")
