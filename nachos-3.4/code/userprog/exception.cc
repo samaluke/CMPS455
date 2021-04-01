@@ -36,6 +36,13 @@ static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
 Thread * getID(int toGet);
 
+int badVAddr;
+int badVPage;
+int bitMapNum;
+
+
+
+
 // end FA98
 
 //----------------------------------------------------------------------
@@ -126,6 +133,7 @@ ExceptionHandler(ExceptionType which)
 		case SC_Halt :
 			printf("SYSTEM CALL: Halt, called by thread %i.\n",currentThread->getID());
 			DEBUG('t', "Shutdown, initiated by user program.\n");
+			fileSystem->Remove(currentThread->space->name);
 			interrupt->Halt();
 			break;
 
@@ -232,6 +240,7 @@ ExceptionHandler(ExceptionType which)
 						currentThread->isJoined = true;	// Let the parent know it has a child
 						(void) interrupt->SetLevel(IntOff);	// Disable interrupts for Sleep();
 						currentThread->Sleep();	// Put the current thread to sleep.
+						fileSystem->Remove(currentThread->space->name);
 						break;
 					}
 					else{	// We've got an error message.
@@ -334,6 +343,7 @@ ExceptionHandler(ExceptionType which)
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case NumExceptionTypes :
+<<<<<<< HEAD
 			printf("ERROR: NumExceptionTypes, called by thread %i.\n",currentThread->getID());
 			if (currentThread->getName() == "main")
 				ASSERT(FALSE);  //Not the way of handling an exception.
@@ -415,6 +425,40 @@ ExceptionHandler(ExceptionType which)
 							pageList->Append (pageToReplace);
 			}
 			// End code changes by Samantha Luke
+=======
+		printf("ERROR: NumExceptionTypes, called by thread %i.\n",currentThread->getID());
+		if (currentThread->getName() == "main")
+			ASSERT(FALSE);  //Not the way of handling an exception.
+		if(currentThread->space)	// Delete the used memory from the process.
+		{
+			fileSystem->Remove(currentThread->space->name);
+			delete currentThread->space;
+		}
+		currentThread->Finish();	// Delete the thread.
+		break;
+	case PageFaultException :
+		{
+			/// Ben Hearod Demand Pageing Start
+			badVAddr = machine->ReadRegister(BadVAddrReg);
+			badVPage = badVAddr / PageSize;
+			bitMapNum = bitMap->Find();
+
+			stats->numPageFaults++;
+
+			OpenFile * file = fileSystem->Open(currentThread->space->name);
+			file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
+			delete file;
+			currentThread->space->UpdatePage(badVPage,bitMapNum);
+			/// Demand Pageing End
+			break;
+		}
+		default :
+		//      printf("Unexpected user mode exception %d %d\n", which, type);
+		//      if (currentThread->getName() == "main")
+		//      ASSERT(FALSE);
+		//      SExit(1);
+		break;
+>>>>>>> ff2020742524405636eaf7d59a7ce676cb174fa8
 	}
 	delete [] ch;
 }

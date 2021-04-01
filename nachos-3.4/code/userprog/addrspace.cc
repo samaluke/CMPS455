@@ -65,6 +65,8 @@ AddrSpace::AddrSpace(OpenFile *executable, int thread_id)
     NoffHeader noffH;
     unsigned int i, size;
 
+
+
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) &&
 		(WordToHost(noffH.noffMagic) == NOFFMAGIC))
@@ -83,6 +85,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int thread_id)
 						// at least until we have
 						// virtual memory
 
+	//Konnor Miller Swap Files
 	name = new char[20];
 	sprintf(name, "%d.swap", thread_id);
 	fileSystem->Create(name, size);
@@ -93,34 +96,32 @@ AddrSpace::AddrSpace(OpenFile *executable, int thread_id)
 	file->WriteAt(buffer, bufferSize, 0);
 	delete[] buffer;
 	delete file;
+	//Konnor Miller End
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n",
 					numPages, size);
 // first, set up the translation
-	int num;
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-		num = bitMap->Find();
-		if (num == -1)
-		{
-			printf("Error: page table full\n");
-			currentThread->Finish();
-		}
-		pageTable[i].virtualPage = num;	// for now, virtual page # = phys page #
-		pageTable[i].physicalPage = num;
-		pageTable[i].valid = TRUE;
+		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+		//pageTable[i].physicalPage = i;
+		pageTable[i].valid = FALSE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on
 						// a separate page, we could set its
 						// pages to be read-only
     }
+	//swapFile = executable;
+	//printf("Length %d\n",swapFile->Length());
 
 // zero out the entire address space, to zero the unitialized data segment
 // and the stack segment
-    bzero(machine->mainMemory, size);
+    //bzero(machine->mainMemory, size);
 
 // then, copy in the code and data segments into memory
+
+	/*
     if (noffH.code.size > 0) {
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n",
 			noffH.code.virtualAddr, noffH.code.size);
@@ -132,8 +133,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int thread_id)
 			noffH.initData.virtualAddr, noffH.initData.size);
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
-    }
-
+    }*/
 }
 
 //----------------------------------------------------------------------
@@ -146,6 +146,24 @@ AddrSpace::~AddrSpace()
 	fileSystem->Remove(name);
    delete pageTable;
 }
+
+void AddrSpace::UpdatePage(int badVPage, int bitMapNum)
+{
+	for (int i = 0; i < numPages; i++)
+	{
+		if (pageTable[i].virtualPage == badVPage)
+		{
+			pageTable[i].physicalPage = bitMapNum;
+			pageTable[i].valid = TRUE;
+		}
+	}
+}
+
+void AddrSpace::GetPageData(int num) {
+
+	printf("Page info: %d %d\n",pageTable[num].physicalPage, pageTable[num].valid);
+}
+
 
 //----------------------------------------------------------------------
 // AddrSpace::InitRegisters
