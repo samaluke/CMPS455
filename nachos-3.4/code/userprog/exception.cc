@@ -343,7 +343,6 @@ ExceptionHandler(ExceptionType which)
 		currentThread->Finish();	// Delete the thread.
 		break;
 	case NumExceptionTypes :
-<<<<<<< HEAD
 			printf("ERROR: NumExceptionTypes, called by thread %i.\n",currentThread->getID());
 			if (currentThread->getName() == "main")
 				ASSERT(FALSE);  //Not the way of handling an exception.
@@ -362,7 +361,17 @@ ExceptionHandler(ExceptionType which)
 			//      SExit(1);
 			break;
 	case PageFaultException :
-			// Task 3 stuff
+		{
+			/// Begin code changes by Ben Hearod
+			badVAddr = machine->ReadRegister(BadVAddrReg);
+			badVPage = badVAddr / PageSize;
+			bitMapNum = bitMap->Find();
+
+			stats->numPageFaults++;
+			printf ("Page faults: %i\n", stats->numPageFaults);
+			// End code changes by Ben Hearod
+
+			printf ("hello");
 
 			// Begin code changes by Samantha Luke
 			int pageToReplace = -1;
@@ -370,95 +379,62 @@ ExceptionHandler(ExceptionType which)
 			switch (memChoice)
 			{
 					case 1: // FIFO page replacement
-							pageToReplace = pageList->Remove ();
+							pageToReplace = (int)pageList->Remove ();
 							break;
 					case 2: // Random page replacement
+							printf ("In the switch case!");
 							pageToReplace = (Random () % 31);
 							break;
 					default: // Demand Paging, other, or error, disable virtual memory
-							printf ("Not enough pages available, exiting program.");
-							currentThread->Finish ();
 							break;
 			}
 
-			if (pageToReplace != -1)
+			if (pageToReplace == -1) // Demand Paging
+			{
+					// End code changes by Samantha Luke
+					// Begin code changes by Ben Hearod
+					OpenFile * file = fileSystem->Open(currentThread->space->name);
+					file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
+					delete file;
+					currentThread->space->UpdatePage(badVPage,bitMapNum);
+					/// End code changes by Ben Hearod
+					// Begin code changes by Samantha Luke
+			}
+			else // Virutal Memory
 			{
 					Thread *swapOutThread = IPT [pageToReplace];
 
-					if (swapOutThread->space->pageTable.dirty)// if dirty
+					if (swapOutThread->space->IsDirty (pageToReplace))
 					{
 							// open swapfile of swapOutThread
-							name = new char[20];
-							int thread_id = swapOutThread->ID;
-							sprintf(name, "%d.swap", thread_id);
-							OpenFile * file = fileSystem->Open(name);
+							OpenFile * file = fileSystem->Open (swapOutThread->space->name);
 
 							//// write content of physical page to swap file at its virtual page allocation
-							int bufferSize = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
-							char * buffer = new char[bufferSize];
-							executable->ReadAt(buffer, bufferSize, sizeof(noffH));
-							file->WriteAt(buffer, bufferSize, 0);
+							file->WriteAt(&(machine->mainMemory[pageToReplace*PageSize]), PageSize, badVPage*PageSize);
 
 							// set thread page table valid bit to FALSE
-							swapOutThread->space->pageTable.valid = FALSE;
+							swapOutThread->space->SetValidFalse (badVPage);
 
 							// close swap file
 							// delete pointer to swap file
-							delete[] buffer;
 							delete file;
 					}
 
 					// open swap file for current thread
-					name = new char[20];
-					int thread_id = currentThread->ID;
-					sprintf(name, "%d.swap", thread_id);
-					OpenFile * file = fileSystem->Open(name);
+					OpenFile * file = fileSystem->Open(currentThread->space->name);
 
 					// copy required content into the physical page just opened
-
+					file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]), PageSize, badVPage*PageSize);
 
 					// update IPT[free_physical_page_num] and set it to curren thread
 					IPT[pageToReplace] = currentThread;
 
 					// if FIFO, add the page number ot the FIFO list
 					if (memChoice == 1)
-							pageList->Append (pageToReplace);
+							pageList->Append(&pageToReplace);
 			}
 			// End code changes by Samantha Luke
-=======
-		printf("ERROR: NumExceptionTypes, called by thread %i.\n",currentThread->getID());
-		if (currentThread->getName() == "main")
-			ASSERT(FALSE);  //Not the way of handling an exception.
-		if(currentThread->space)	// Delete the used memory from the process.
-		{
-			fileSystem->Remove(currentThread->space->name);
-			delete currentThread->space;
 		}
-		currentThread->Finish();	// Delete the thread.
-		break;
-	case PageFaultException :
-		{
-			/// Ben Hearod Demand Pageing Start
-			badVAddr = machine->ReadRegister(BadVAddrReg);
-			badVPage = badVAddr / PageSize;
-			bitMapNum = bitMap->Find();
-
-			stats->numPageFaults++;
-
-			OpenFile * file = fileSystem->Open(currentThread->space->name);
-			file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
-			delete file;
-			currentThread->space->UpdatePage(badVPage,bitMapNum);
-			/// Demand Pageing End
-			break;
-		}
-		default :
-		//      printf("Unexpected user mode exception %d %d\n", which, type);
-		//      if (currentThread->getName() == "main")
-		//      ASSERT(FALSE);
-		//      SExit(1);
-		break;
->>>>>>> ff2020742524405636eaf7d59a7ce676cb174fa8
 	}
 	delete [] ch;
 }

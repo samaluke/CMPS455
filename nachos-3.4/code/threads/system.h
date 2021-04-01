@@ -33,7 +33,7 @@ extern Timer *timer;				// the hardware alarm clock
 extern int threadChoice;
 // Begin code changes by Samantha Luke
 extern int memChoice;
-extern List pageList;
+extern List *pageList;
 extern Thread* IPT [32];
 // End code changes by Samantha Luke
 

@@ -159,6 +159,25 @@ void AddrSpace::UpdatePage(int badVPage, int bitMapNum)
 	}
 }
 
+void AddrSpace::SetValidFalse (int badVPage)
+{
+	for (int i = 0; i < numPages; i++)
+	{
+		if (pageTable[i].virtualPage == badVPage)
+		{
+			pageTable[i].valid = FALSE;
+		}
+	}
+}
+
+bool AddrSpace::IsDirty (int page)
+{
+	if (pageTable [page].dirty = FALSE)
+		return FALSE;
+	else
+		return TRUE;
+}
+
 void AddrSpace::GetPageData(int num) {
 
 	printf("Page info: %d %d\n",pageTable[num].physicalPage, pageTable[num].valid);

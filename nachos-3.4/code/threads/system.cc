@@ -22,7 +22,7 @@ Timer *timer;				// the hardware timer device,
 int threadChoice;
 // begin code changes by Samantha Luke
 int memChoice;
-List pageList = new List ();
+List *pageList = new List ();
 Thread* IPT [32];
 // end code changes by Samantha Luke
 #ifdef FILESYS_NEEDED

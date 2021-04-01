@@ -30,6 +30,8 @@ class AddrSpace {
 					// before jumping to user code
 
 	void UpdatePage(int badVPage, int bitMapNum);
+  void SetValidFalse (int badVPage);
+  bool IsDirty (int page);
 	void LoadPage();
 	void GetPageData(int num);
 
