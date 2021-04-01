@@ -85,7 +85,10 @@ AddrSpace::AddrSpace(OpenFile *executable, int thread_id)
 						// at least until we have
 						// virtual memory
 
-	//Konnor Miller Swap Files
+	//Begin code changes by Konnor Miller
+	printf("Number of physical pages: %d\n", NumPhysPages);
+	printf("Page size: %d\n", PageSize);
+
 	name = new char[20];
 	sprintf(name, "%d.swap", thread_id);
 	fileSystem->Create(name, size);
@@ -96,7 +99,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int thread_id)
 	file->WriteAt(buffer, bufferSize, 0);
 	delete[] buffer;
 	delete file;
-	//Konnor Miller End
+	// End Code changes by Konnor Miller
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n",
 					numPages, size);

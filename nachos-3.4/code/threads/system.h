@@ -36,13 +36,18 @@ extern int memChoice;
 extern List *pageList;
 extern Thread* IPT [32];
 // End code changes by Samantha Luke
+// Begin code changes by Konnor Miller
+extern bool output;
+// End code changes by Konnor Miller
 
 #ifdef USER_PROGRAM
 #include "machine.h"
 extern Machine* machine;	// user program memory and registers
 extern List* activeThreads;	// active thread list for process management
+// Begin code changes by Konnor Miller
 extern int threadID;	// unique process id
 extern BitMap* bitMap;
+// End code changes by Konnor Miller
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB

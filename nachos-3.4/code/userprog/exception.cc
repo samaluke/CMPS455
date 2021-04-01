@@ -239,8 +239,8 @@ ExceptionHandler(ExceptionType which)
 						getID(arg1)->setParent(currentThread);	// Set the process' parent to the current thread.
 						currentThread->isJoined = true;	// Let the parent know it has a child
 						(void) interrupt->SetLevel(IntOff);	// Disable interrupts for Sleep();
-						currentThread->Sleep();	// Put the current thread to sleep.
 						fileSystem->Remove(currentThread->space->name);
+						currentThread->Sleep();	// Put the current thread to sleep.
 						break;
 					}
 					else{	// We've got an error message.
@@ -263,6 +263,11 @@ ExceptionHandler(ExceptionType which)
 				{
 					fileSystem->Remove(currentThread->space->name);
 					delete currentThread->space;
+				}
+				for (int i = 0; i < 32; i++)
+				{
+					if (IPT[i] == currentThread)
+						bitMap->Clear(i);
 				}
 				currentThread->Finish();	// Delete the thread.
 
@@ -368,11 +373,8 @@ ExceptionHandler(ExceptionType which)
 			bitMapNum = bitMap->Find();
 
 			stats->numPageFaults++;
-			printf ("Page faults: %i\n", stats->numPageFaults);
+
 			// End code changes by Ben Hearod
-
-			printf ("hello\n");
-
 			// Begin code changes by Samantha Luke
 			int pageToReplace = -1;
 
@@ -385,7 +387,6 @@ ExceptionHandler(ExceptionType which)
 						pageToReplace = bitMapNum;
 					break;
 				case 2: // Random page replacement
-					printf ("In the switch case!");
 					pageToReplace = (Random () % 31);
 					break;
 				default: // Demand Paging, other, or error, disable virtual memory
@@ -407,6 +408,13 @@ ExceptionHandler(ExceptionType which)
 					OpenFile * file = fileSystem->Open(currentThread->space->name);
 					file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
 					delete file;
+					// Begin code changes by Konnor Miller
+					if (output)
+					{
+						printf("Page faults: Process %d requests virtual page %d\n", threadID, badVPage);
+						printf("Assigning physical page: %d\n", bitMapNum);
+					}
+					// End code changes by Konnor Miller
 					currentThread->space->UpdatePage(badVPage,bitMapNum);
 				}
 				/// End code changes by Ben Hearod
@@ -419,25 +427,39 @@ ExceptionHandler(ExceptionType which)
 					OpenFile * file = fileSystem->Open(currentThread->space->name);
 					file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
 					delete file;
+					// Begin code changes by Konnor Miller
+					if (output)
+					{
+						printf("Page faults: Process %d requests virtual page %d\n", threadID, badVPage);
+						printf("Assigning physical page: %d\n", bitMapNum);
+					}
+					// End code changes by Konnor Miller
 					currentThread->space->UpdatePage(badVPage,bitMapNum);
 					IPT[pageToReplace] = currentThread;
 					if (memChoice == 1)
-							pageList->Append(&pageToReplace);
+							pageList->Append((int*)pageToReplace);
 				}
 				else
 				{
-					Thread *swapOutThread = IPT [pageToReplace];
-
-					if (swapOutThread->space->IsDirty (pageToReplace))
+					if (IPT[pageToReplace]->space->IsDirty(pageToReplace))
 					{
 						// open swapfile of swapOutThread
-						OpenFile * file = fileSystem->Open (swapOutThread->space->name);
+						OpenFile * file = fileSystem->Open (IPT[pageToReplace]->space->name);
 
 						//// write content of physical page to swap file at its virtual page allocation
 						file->WriteAt(&(machine->mainMemory[pageToReplace*PageSize]), PageSize, badVPage*PageSize);
 
 						// set thread page table valid bit to FALSE
-						swapOutThread->space->SetValidFalse (badVPage);
+						IPT[pageToReplace]->space->SetValidFalse (badVPage);
+
+						// Begin code changes by Konnor Miller
+						if (output)
+						{
+							printf("Page faults: Process %d requests virtual page %d\n", threadID, badVPage);
+							printf("Swap out physical page %d from process %d\n", pageToReplace, IPT[pageToReplace]->getID());
+							printf("Virtual page %d removed\n", badVPage);
+						}
+						// End code changes by Konnor Miller
 
 						// close swap file
 						// delete pointer to swap file
@@ -455,7 +477,7 @@ ExceptionHandler(ExceptionType which)
 
 					// if FIFO, add the page number ot the FIFO list
 					if (memChoice == 1)
-							pageList->Append(&pageToReplace);
+							pageList->Append((int*)pageToReplace);
 				}
 			}
 			// End code changes by Samantha Luke

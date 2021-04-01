@@ -25,6 +25,10 @@ int memChoice;
 List *pageList = new List ();
 Thread* IPT [32];
 // end code changes by Samantha Luke
+// Begin code changes by Konnor Miller
+bool output = FALSE;
+// end code changes by Konnor Miller
+
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -32,8 +36,10 @@ FileSystem  *fileSystem;
 #ifdef USER_PROGRAM
 Machine *machine;	// user program memory and registers
 List* activeThreads;
+// Begin code changes by Konnor Miller
 int threadID;
 BitMap* bitMap = new BitMap(NumPhysPages);
+// end code changes by Konnor Miller
 #endif
 
 #ifdef FILESYS
@@ -143,6 +149,12 @@ Initialize(int argc, char **argv)
       }
   }
   // End code changes by Samantha Luke
+  // Begin code changes by Konnor Miller
+  else if (!strcmp(*argv, "-E")) {
+	  output = TRUE;
+  }
+	  //End code changes by Konnor Miller
+
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
 	    debugUserProg = TRUE;
