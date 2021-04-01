@@ -172,7 +172,7 @@ void AddrSpace::SetValidFalse (int badVPage)
 
 bool AddrSpace::IsDirty (int page)
 {
-	if (pageTable [page].dirty = FALSE)
+	if (pageTable [page].dirty == FALSE)
 		return FALSE;
 	else
 		return TRUE;

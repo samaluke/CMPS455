@@ -371,53 +371,77 @@ ExceptionHandler(ExceptionType which)
 			printf ("Page faults: %i\n", stats->numPageFaults);
 			// End code changes by Ben Hearod
 
-			printf ("hello");
+			printf ("hello\n");
 
 			// Begin code changes by Samantha Luke
 			int pageToReplace = -1;
 
 			switch (memChoice)
 			{
-					case 1: // FIFO page replacement
-							pageToReplace = (int)pageList->Remove ();
-							break;
-					case 2: // Random page replacement
-							printf ("In the switch case!");
-							pageToReplace = (Random () % 31);
-							break;
-					default: // Demand Paging, other, or error, disable virtual memory
-							break;
+				case 1: // FIFO page replacement
+					if (bitMapNum == -1)
+						pageToReplace = (int)pageList->Remove ();
+					else
+						pageToReplace = bitMapNum;
+					break;
+				case 2: // Random page replacement
+					printf ("In the switch case!");
+					pageToReplace = (Random () % 31);
+					break;
+				default: // Demand Paging, other, or error, disable virtual memory
+					break;
 			}
-
 			if (pageToReplace == -1) // Demand Paging
 			{
-					// End code changes by Samantha Luke
-					// Begin code changes by Ben Hearod
+				// End code changes by Samantha Luke
+				// Begin code changes by Ben Hearod
+				if (bitMapNum == -1)
+				{
+					printf("Error: Not enough memory to allocate.\n");
+					printf("Exiting NachOS.\n");
+					fileSystem->Remove(currentThread->space->name);
+					Exit(0);
+				}
+				else
+				{
 					OpenFile * file = fileSystem->Open(currentThread->space->name);
 					file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
 					delete file;
 					currentThread->space->UpdatePage(badVPage,bitMapNum);
-					/// End code changes by Ben Hearod
-					// Begin code changes by Samantha Luke
+				}
+				/// End code changes by Ben Hearod
+				// Begin code changes by Samantha Luke
 			}
 			else // Virutal Memory
 			{
+				if (bitMapNum != -1)
+				{
+					OpenFile * file = fileSystem->Open(currentThread->space->name);
+					file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]),PageSize, badVPage*PageSize);
+					delete file;
+					currentThread->space->UpdatePage(badVPage,bitMapNum);
+					IPT[pageToReplace] = currentThread;
+					if (memChoice == 1)
+							pageList->Append(&pageToReplace);
+				}
+				else
+				{
 					Thread *swapOutThread = IPT [pageToReplace];
 
 					if (swapOutThread->space->IsDirty (pageToReplace))
 					{
-							// open swapfile of swapOutThread
-							OpenFile * file = fileSystem->Open (swapOutThread->space->name);
+						// open swapfile of swapOutThread
+						OpenFile * file = fileSystem->Open (swapOutThread->space->name);
 
-							//// write content of physical page to swap file at its virtual page allocation
-							file->WriteAt(&(machine->mainMemory[pageToReplace*PageSize]), PageSize, badVPage*PageSize);
+						//// write content of physical page to swap file at its virtual page allocation
+						file->WriteAt(&(machine->mainMemory[pageToReplace*PageSize]), PageSize, badVPage*PageSize);
 
-							// set thread page table valid bit to FALSE
-							swapOutThread->space->SetValidFalse (badVPage);
+						// set thread page table valid bit to FALSE
+						swapOutThread->space->SetValidFalse (badVPage);
 
-							// close swap file
-							// delete pointer to swap file
-							delete file;
+						// close swap file
+						// delete pointer to swap file
+						delete file;
 					}
 
 					// open swap file for current thread
@@ -425,13 +449,14 @@ ExceptionHandler(ExceptionType which)
 
 					// copy required content into the physical page just opened
 					file->ReadAt(&(machine->mainMemory[(bitMapNum*PageSize)]), PageSize, badVPage*PageSize);
-
+					delete file;
 					// update IPT[free_physical_page_num] and set it to curren thread
 					IPT[pageToReplace] = currentThread;
 
 					// if FIFO, add the page number ot the FIFO list
 					if (memChoice == 1)
 							pageList->Append(&pageToReplace);
+				}
 			}
 			// End code changes by Samantha Luke
 		}
